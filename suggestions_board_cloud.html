@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Suggestion & Upvote Board (Cloud)</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent-2:#38bdf8; --danger:#ef4444; --warning:#f59e0b; --card:#0b1220; --chip:#1f2937; --border:#243041;
+    }
+    * { box-sizing: border-box; }
+    body{ margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; background: radial-gradient(1200px 800px at 10% 10%, #0b1731 0%, #0f172a 40%, #0b1220 100%); color:var(--text); }
+    header{ padding:28px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; backdrop-filter:saturate(160%) blur(8px); background-color:rgba(11,18,32,.65); z-index:50; }
+    .container{ max-width:1300px; margin:0 auto; padding: 0 16px; }
+    h1{ font-size: clamp(20px, 3vw, 28px); margin:8px 0 4px; }
+    p.subtitle{ color:var(--muted); margin:0; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap:16px; margin:20px 0; }
+    @media (min-width: 960px){ .grid{ grid-template-columns: 380px 1fr; } }
+    @media (min-width: 1200px){ .grid{ grid-template-columns: 380px 1fr 1fr; } }
+    .card{ background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .row{ display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+    .row.right{ justify-content:flex-end; }
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
+    input[type="text"], input[type="search"], input[type="password"], input[type="date"], textarea, select { width:100%; padding:10px 12px; border-radius: 10px; border:1px solid var(--border); background: #0b1220; color:var(--text); outline: none; transition:.2s border-color ease; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent-2); }
+    button{ border:1px solid var(--border); background:linear-gradient(180deg, #10233f, #0e1b31); color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; transition:.2s transform ease, .2s background ease, .2s border-color ease; }
+    button:hover{ transform: translateY(-1px); border-color:#385275; }
+    button.primary{ background: linear-gradient(180deg, #22c55e, #17a34a); border-color: #0e6b34; color:#052011; font-weight:600; }
+    button.ghost{ background: transparent; }
+    button.warn{ background:linear-gradient(180deg, #f59e0b, #b45309); border-color:#7c2d12; }
+    button.danger{ background:linear-gradient(180deg, #ef4444, #b91c1c); border-color:#7f1d1d; }
+    .help{ color:var(--muted); font-size:12px; }
+    .topic{ display:grid; grid-template-columns: auto 1fr auto; gap:10px; align-items:center; padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(17,24,39,0.45); }
+    .topic-title{ font-weight:600; }
+    .score-chip{ background: var(--chip); padding:6px 10px; border-radius:999px; font-weight:600; min-width:52px; text-align:center; }
+    .muted{ color: var(--muted); font-size:12px; }
+    .section-title{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0 10px; }
+    .badge{ border:1px solid var(--border); background: rgba(255,255,255,0.04); padding:6px 10px; border-radius:999px; color:var(--muted); font-size:12px; }
+    .hidden{ display:none !important; }
+    .divider{ height:1px; background:var(--border); margin:14px 0; }
+    .toast{ position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); padding:10px 14px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,.65); color:#e5e7eb; z-index: 100; }
+    details summary{ cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Suggestions & Upvotes (Cloud)</h1>
+      <p class="subtitle">Shared data across all users • Smart duplicate detection • Admin controls</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <!-- Left: New submission and filters -->
+      <section class="card" aria-labelledby="submit-title">
+        <div class="section-title">
+          <h2 id="submit-title" style="margin:0">Submit a new topic</h2>
+          <span class="badge" id="newStatus">Accepting new topics</span>
+        </div>
+        <div>
+          <label for="topicInput">Topic</label>
+          <input id="topicInput" type="text" placeholder="e.g., Integrate with BACnet for building automation" />
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div style="flex:1; min-width: 140px;">
+            <label for="nameInput">Your name (optional)</label>
+            <input id="nameInput" type="text" placeholder="Full name" />
+          </div>
+          <div style="flex:1; min-width: 140px;">
+            <label for="companyInput">Company (optional)</label>
+            <input id="companyInput" type="text" placeholder="Company or team" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" id="submitBtn">Add topic</button>
+          <span class="help">If your text matches a similar topic, your submission will count as an upvote for that topic.</span>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <label for="searchInput">Search all suggestions</label>
+          <input id="searchInput" type="search" placeholder="Search by keyword…" />
+          <p class="help">Search looks through every suggestion—regardless of rank.</p>
+        </div>
+        <div class="divider"></div>
+        <details>
+          <summary class="help">How voting works</summary>
+          <ul class="help">
+            <li>You can upvote each topic once per device/browser (tracked by a local visitor ID).</li>
+            <li>Submitting a new topic also gives it one upvote (from you).</li>
+            <li>Duplicates are detected locally and counted for the best match.</li>
+          </ul>
+        </details>
+      </section>
+
+      <!-- Middle: List -->
+      <section class="card" aria-labelledby="list-title">
+        <div class="section-title">
+          <h2 id="list-title" style="margin:0">Top suggestions</h2>
+          <div class="row">
+            <span class="badge" id="summaryCount">0 topics</span>
+            <button id="toggleAdminBtn" class="ghost" aria-expanded="false" aria-controls="adminPanel">Admin</button>
+          </div>
+        </div>
+
+        <div id="topicsList" aria-live="polite" aria-busy="false"></div>
+        <div class="row right" style="margin-top:12px">
+          <button id="showMoreBtn" class="ghost">Show more</button>
+          <button id="showLessBtn" class="ghost hidden">Show less</button>
+        </div>
+
+        <div id="noResults" class="hidden" style="margin-top:8px">
+          <p class="muted">No matching suggestions found.</p>
+        </div>
+
+        <div class="divider" style="margin-top:18px"></div>
+
+        <!-- Admin panel -->
+        <section id="adminPanel" class="hidden" aria-labelledby="admin-title">
+          <div class="section-title">
+            <h3 id="admin-title" style="margin:0">Admin controls</h3>
+            <span class="badge">Cloud API</span>
+          </div>
+
+          <div class="row" style="align-items:flex-end; gap:10px; flex-wrap:wrap">
+            <div style="min-width:220px;">
+              <label for="adminPass">Enter passphrase</label>
+              <input type="password" id="adminPass" placeholder="admin" />
+            </div>
+            <button id="adminUnlockBtn">Unlock</button>
+            <span class="help">Server validates this passphrase.</span>
+          </div>
+
+          <div id="adminControls" class="hidden">
+            <div class="divider"></div>
+            <div class="row" style="flex-wrap:wrap; gap:10px">
+              <button id="toggleAcceptBtn" class="warn">Toggle accepting new topics</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Merge -->
+            <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap">
+              <div style="flex:1; min-width:200px;">
+                <label for="mergeFrom">Merge: From</label>
+                <select id="mergeFrom"></select>
+              </div>
+              <div style="flex:1; min-width:200px;">
+                <label for="mergeInto">Into</label>
+                <select id="mergeInto"></select>
+              </div>
+              <button id="mergeBtn">Merge topics</button>
+            </div>
+
+            <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top:10px">
+              <div style="flex:1; min-width:200px;">
+                <label for="editSelect">Edit / Delete topic</label>
+                <select id="editSelect"></select>
+              </div>
+              <div style="flex:2; min-width:200px;">
+                <label for="editTitle">New title</label>
+                <input id="editTitle" type="text" placeholder="Change title…" />
+              </div>
+              <button id="applyEditBtn">Apply title</button>
+              <button id="deleteBtn" class="danger">Delete</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Increment vote -->
+            <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+              <div style="flex:1; min-width:200px;">
+                <label for="incSelect">Manually increase votes for</label>
+                <select id="incSelect"></select>
+              </div>
+              <button id="incVoteBtn">Add +1 vote</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Move to Completed -->
+            <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+              <div style="flex:2; min-width:220px;">
+                <label for="completeSelect">Move to <strong>Completed Topics</strong></label>
+                <select id="completeSelect"></select>
+              </div>
+              <div style="flex:1; min-width:160px;">
+                <label for="completedDate">Completion date</label>
+                <input id="completedDate" type="date" />
+              </div>
+              <div style="flex:2; min-width:240px;">
+                <label for="videoUrl">Video recap link (optional)</label>
+                <input id="videoUrl" type="text" placeholder="https://…" />
+              </div>
+              <button id="moveToCompletedBtn" class="warn">Move to Completed</button>
+            </div>
+
+          </div>
+        </section>
+      </section>
+
+      <!-- Right: Completed Topics -->
+      <section class="card" aria-labelledby="completed-title">
+        <div class="section-title">
+          <h2 id="completed-title" style="margin:0">Completed Topics</h2>
+          <span class="badge" id="completedCount">0 completed</span>
+        </div>
+        <div id="completedList"></div>
+        <div id="noCompleted" class="hidden" style="margin-top:8px">
+          <p class="muted">No completed topics yet.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script>
+    // ------------------ Config ------------------
+    const API_BASE = 'https://YOUR-VERCEL-APP.vercel.app/api'; // <- CHANGE THIS after deploy
+
+    const STORAGE_VISITOR = 'suggestionBoardVisitorId_v1';
+    function getVisitorId(){
+      let v = localStorage.getItem(STORAGE_VISITOR);
+      if(!v){ v = 'v_' + Math.random().toString(36).slice(2,10); localStorage.setItem(STORAGE_VISITOR, v); }
+      return v;
+    }
+
+    // Similarity utils (same as before)
+    function normalize(str){
+      return (str||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+    }
+    function dice(a,b){ a=normalize(a); b=normalize(b); if(!a||!b) return 0; if(a===b) return 1; const bg=s=>{ if(s.length<2) return [s]; const arr=[]; for(let i=0;i<s.length-1;i++){ arr.push(s.slice(i,i+2)); } return arr; }; const A=bg(a), B=bg(b); const map=new Map(); for(const g of A){ map.set(g,(map.get(g)||0)+1); } let matches=0; for(const g of B){ const c=map.get(g)||0; if(c>0){ matches++; map.set(g,c-1); } } return (2*matches)/(A.length+B.length); }
+    function jaccard(a,b){ a=new Set(normalize(a).split(' ')); b=new Set(normalize(b).split(' ')); if(a.size===0||b.size===0) return 0; const inter=new Set([...a].filter(x=>b.has(x))); const uni=new Set([...a,...b]); return inter.size/uni.size; }
+    function similarity(a,b){ return Math.max(dice(a,b), jaccard(a,b)); }
+
+    const THRESHOLD = 0.82;
+    const SHOW_N = 7;
+    let expanded = false;
+
+    const state = { topics: [], completed: [], userVotes: [], settings: { accepting:true } };
+
+    function showToast(msg){ const el = document.getElementById('toast'); el.textContent = msg; el.classList.remove('hidden'); setTimeout(()=> el.classList.add('hidden'), 2200); }
+
+    async function fetchState(){
+      const q = normalize(document.getElementById('searchInput').value);
+      const url = new URL(API_BASE + '/topics');
+      if(q) url.searchParams.set('search', q);
+      url.searchParams.set('visitor', getVisitorId());
+      const resp = await fetch(url.toString());
+      const data = await resp.json();
+      state.settings = data.settings; state.topics = data.topics||[]; state.completed = data.completed||[]; state.userVotes = data.userVotes||[];
+      renderAll();
+    }
+
+    function renderAll(){
+      document.getElementById('summaryCount').textContent = `${state.topics.length} topics`;
+      document.getElementById('newStatus').textContent = state.settings.accepting? 'Accepting new topics' : 'New topics disabled';
+      document.getElementById('completedCount').textContent = `${state.completed.length} completed`;
+      renderTopics(); renderCompleted(); populateAdminSelects();
+    }
+
+    function sortTopics(arr){ return arr.slice().sort((a,b)=> (b.score-a.score) || a.title.localeCompare(b.title)); }
+    function sortCompleted(arr){ return arr.slice().sort((a,b)=>{ const ad=a.completed_at? new Date(a.completed_at).getTime():0; const bd=b.completed_at? new Date(b.completed_at).getTime():0; return (bd-ad) || a.title.localeCompare(b.title); }); }
+
+    function filteredTopics(){ const q=normalize(document.getElementById('searchInput').value); const arr=sortTopics(state.topics); if(!q) return { list: arr, filtered:false }; const list=arr.filter(t=> normalize(t.title).includes(q)); return { list, filtered:true }; }
+
+    function renderTopics(){
+      const wrap = document.getElementById('topicsList'); const noRes = document.getElementById('noResults'); wrap.innerHTML = '';
+      const { list, filtered } = filteredTopics(); if(list.length===0){ noRes.classList.remove('hidden'); } else { noRes.classList.add('hidden'); }
+      const lim = (!filtered && !expanded) ? SHOW_N : list.length; const subset = list.slice(0, lim);
+      subset.forEach(t => wrap.appendChild(topicRow(t)));
+      document.getElementById('showMoreBtn').classList.toggle('hidden', filtered || expanded || list.length <= SHOW_N);
+      document.getElementById('showLessBtn').classList.toggle('hidden', filtered || !expanded || list.length <= SHOW_N);
+    }
+
+    function topicRow(topic){
+      const row = document.createElement('div'); row.className = 'topic'; row.dataset.id = topic.id;
+      const score = document.createElement('div'); score.className = 'score-chip'; score.textContent = `▲ ${topic.score}`;
+      const title = document.createElement('div'); const titleText = document.createElement('div'); titleText.className = 'topic-title'; titleText.textContent = topic.title; const meta = document.createElement('div'); meta.className = 'muted'; meta.textContent = ' ';
+      title.appendChild(titleText); title.appendChild(meta);
+      const actions = document.createElement('div'); const upBtn = document.createElement('button'); const voted = state.userVotes.includes(topic.id); upBtn.textContent = voted? 'Upvoted' : 'Upvote'; upBtn.disabled = voted; upBtn.addEventListener('click', ()=> handleUpvote(topic.id)); actions.appendChild(upBtn);
+      row.appendChild(score); row.appendChild(title); row.appendChild(actions); return row;
+    }
+
+    function renderCompleted(){
+      const listEl = document.getElementById('completedList'); const emptyEl = document.getElementById('noCompleted'); listEl.innerHTML='';
+      const arr = sortCompleted(state.completed); if(arr.length===0){ emptyEl.classList.remove('hidden'); return; } emptyEl.classList.add('hidden');
+      arr.forEach(item=> listEl.appendChild(completedRow(item)));
+    }
+
+    function completedRow(item){
+      const row = document.createElement('div'); row.className = 'topic';
+      const score = document.createElement('div'); score.className = 'score-chip'; score.textContent = `▲ ${item.score}`;
+      const titleWrap = document.createElement('div'); const title = document.createElement('div'); title.className='topic-title'; if(item.video_url){ const a=document.createElement('a'); a.href=item.video_url; a.target='_blank'; a.rel='noopener'; a.textContent=item.title; title.appendChild(a); } else { title.textContent=item.title; }
+      const meta = document.createElement('div'); meta.className = 'muted'; const dateTxt = item.completed_at? new Date(item.completed_at).toLocaleDateString() : '—'; meta.textContent = `Completed: ${dateTxt}${item.video_url? ' • Video recap':''}`; titleWrap.appendChild(title); titleWrap.appendChild(meta);
+      const actions = document.createElement('div'); const doneBtn=document.createElement('button'); doneBtn.textContent='Done'; doneBtn.disabled=true; actions.appendChild(doneBtn);
+      row.appendChild(score); row.appendChild(titleWrap); row.appendChild(actions); return row;
+    }
+
+    function findSimilarTopic(title){
+      const n = normalize(title); for(const t of state.topics){ if(normalize(t.title)===n) return {match:t, score:1}; }
+      let best=null, bestScore=0; for(const t of state.topics){ const s=similarity(t.title, title); if(s>bestScore){ bestScore=s; best=t; } }
+      if(best && bestScore>=THRESHOLD) return {match:best, score:bestScore}; return {match:null, score:0};
+    }
+
+    async function handleUpvote(topicId){
+      const name = document.getElementById('nameInput').value.trim(); const company = document.getElementById('companyInput').value.trim();
+      const resp = await fetch(API_BASE + '/upvote', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ topicId, name, company, visitorId: getVisitorId() }) });
+      const r = await resp.json(); if(r.counted){ showToast('Upvoted!'); } else { showToast('You already upvoted this topic.'); }
+      fetchState();
+    }
+
+    async function submitTopic(){
+      if(!state.settings.accepting){ showToast('New topics are currently disabled.'); return; }
+      const title = document.getElementById('topicInput').value.trim(); if(!title){ showToast('Please enter a topic.'); return; }
+      const {match, score} = findSimilarTopic(title);
+      const name = document.getElementById('nameInput').value.trim(); const company = document.getElementById('companyInput').value.trim();
+      if(match){ await handleUpvote(match.id); document.getElementById('topicInput').value=''; return; }
+      const resp = await fetch(API_BASE + '/submit', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ title, name, company, visitorId: getVisitorId() }) });
+      const r = await resp.json(); if(r.error){ showToast(r.error); } else { showToast('New topic added with your vote.'); document.getElementById('topicInput').value=''; }
+      fetchState();
+    }
+
+    // Admin helpers
+    function populateAdminSelects(){
+      const ids=['mergeFrom','mergeInto','editSelect','incSelect','completeSelect'];
+      for(const id of ids){ const sel=document.getElementById(id); if(!sel) continue; sel.innerHTML=''; sortTopics(state.topics).forEach(t=>{ const opt=document.createElement('option'); opt.value=t.id; opt.textContent=`${t.title} (▲${t.score})`; sel.appendChild(opt); }); }
+    }
+
+    function getAdminKey(){ return document.getElementById('adminPass').value || ''; }
+    function requireAdmin(){ const key=getAdminKey(); if(!key){ showToast('Enter admin passphrase first.'); return null; } return key; }
+    async function adminCall(body){ const key=requireAdmin(); if(!key) return null; const resp=await fetch(API_BASE + '/admin', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-key': key }, body: JSON.stringify(body) }); return resp.json(); }
+
+    async function adminToggleAccepting(){ const r=await adminCall({ action:'toggleAccepting' }); if(!r||r.error){ showToast(r?.error||'Error'); return; } showToast(`Accepting = ${r.accepting}`); fetchState(); }
+    async function adminMerge(){ const fromId=document.getElementById('mergeFrom').value; const intoId=document.getElementById('mergeInto').value; const r=await adminCall({ action:'merge', fromId, intoId }); showToast(r?.error||'Merged.'); fetchState(); }
+    async function adminApplyEdit(){ const id=document.getElementById('editSelect').value; const title=document.getElementById('editTitle').value.trim(); if(!title){ showToast('Enter a title'); return; } const r=await adminCall({ action:'edit', id, title }); showToast(r?.error||'Title updated.'); document.getElementById('editTitle').value=''; fetchState(); }
+    async function adminDelete(){ const id=document.getElementById('editSelect').value; if(!confirm('Delete this topic?')) return; const r=await adminCall({ action:'delete', id }); showToast(r?.error||'Deleted.'); fetchState(); }
+    async function adminIncrementVote(){ const id=document.getElementById('incSelect').value; const r=await adminCall({ action:'incrementVote', topicId:id, amount:1 }); showToast(r?.error||'+1 added'); fetchState(); }
+    async function adminMoveToCompleted(){ const id=document.getElementById('completeSelect').value; const completedAt=document.getElementById('completedDate').value; const videoUrl=document.getElementById('videoUrl').value.trim(); const r=await adminCall({ action:'complete', id, completedAt, videoUrl }); showToast(r?.error||'Moved to Completed'); document.getElementById('completedDate').value=''; document.getElementById('videoUrl').value=''; fetchState(); }
+
+    function adminTogglePanel(){ const panel=document.getElementById('adminPanel'); const btn=document.getElementById('toggleAdminBtn'); const open=panel.classList.toggle('hidden'); btn.setAttribute('aria-expanded', (!open).toString()); }
+    function adminUnlock(){ const key=getAdminKey(); if(!key){ showToast('Enter passphrase'); return; } document.getElementById('adminControls').classList.remove('hidden'); showToast('Admin unlocked (client)'); }
+
+    // Events
+    document.getElementById('submitBtn').addEventListener('click', submitTopic);
+    document.getElementById('topicInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitTopic(); });
+    document.getElementById('searchInput').addEventListener('input', fetchState);
+
+    document.getElementById('showMoreBtn').addEventListener('click', ()=>{ expanded=true; renderTopics(); });
+    document.getElementById('showLessBtn').addEventListener('click', ()=>{ expanded=false; renderTopics(); });
+
+    document.getElementById('toggleAdminBtn').addEventListener('click', adminTogglePanel);
+    document.getElementById('adminUnlockBtn').addEventListener('click', adminUnlock);
+
+    document.getElementById('toggleAcceptBtn').addEventListener('click', adminToggleAccepting);
+    document.getElementById('mergeBtn').addEventListener('click', adminMerge);
+    document.getElementById('applyEditBtn').addEventListener('click', adminApplyEdit);
+    document.getElementById('deleteBtn').addEventListener('click', adminDelete);
+    document.getElementById('incVoteBtn').addEventListener('click', adminIncrementVote);
+    document.getElementById('moveToCompletedBtn').addEventListener('click', adminMoveToCompleted);
+
+    // initial
+    fetchState();
+  </script>
+</body>
+</html>
