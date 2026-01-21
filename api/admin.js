@@ -1,3 +1,4 @@
+
 const { getClient } = require('./_client');
 const { cors, preflight } = require('./_cors');
 
@@ -80,14 +81,7 @@ module.exports = async (req, res) => {
         await supabase.from('votes').delete().eq('topic_id', id);
         await supabase.from('topics').delete().eq('id', id);
         return res.json({ ok: true });
-      }   
-      case 'deleteCompleted': {
-      const { id } = req.body || {};
-      if (!id) return res.status(400).json({ error: 'Missing id' });
-      await supabase.from('completed').delete().eq('id', id);
-      return res.json({ ok: true });
-      }  
-
+      }
       default:
         return res.status(400).json({ error: 'Unknown action' });
     }
