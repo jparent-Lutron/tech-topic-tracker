@@ -336,8 +336,19 @@
 
     // Admin helpers
     function populateAdminSelects(){
-      const ids=['mergeFrom','mergeInto','editSelect','incSelect','completeSelect'];
+      const ids=['mergeFrom','mergeInto','editSelect','incSelect','completeSelect','deleteCompletedSelect'];
       for(const id of ids){ const sel=document.getElementById(id); if(!sel) continue; sel.innerHTML=''; sortTopics(state.topics).forEach(t=>{ const opt=document.createElement('option'); opt.value=t.id; opt.textContent=`${t.title} (▲${t.score})`; sel.appendChild(opt); }); }
+      
+      else {
+      // Completed topics for deleteCompletedSelect
+      sortCompleted(state.completed).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const d = c.completed_at ? new Date(c.completed_at).toLocaleDateString() : '—';
+        opt.textContent = `${c.title} • completed ${d} (▲${c.score})`;
+        sel.appendChild(opt);
+      });
+
     }
 
     function getAdminKey(){ return document.getElementById('adminPass').value || ''; }
