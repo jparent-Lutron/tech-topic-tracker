@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,18 +195,6 @@
               </div>
               <button id="moveToCompletedBtn" class="warn">Move to Completed</button>
             </div>
-            
-            <!-- Delete from Completed -->
-            <div class="divider"></div>
-            <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
-              <div style="flex:2; min-width:220px;">
-                <label for="deleteCompletedSelect">Delete from <strong>Completed Topics</strong>
-            </label>
-                <select id="deleteCompletedSelect"></select>
-              </div>
-              <button id="deleteCompletedBtn" class="danger">Delete Completed Topic</button>
-            </div>
-
 
           </div>
         </section>
@@ -336,19 +325,8 @@
 
     // Admin helpers
     function populateAdminSelects(){
-      const ids=['mergeFrom','mergeInto','editSelect','incSelect','completeSelect','deleteCompletedSelect'];
+      const ids=['mergeFrom','mergeInto','editSelect','incSelect','completeSelect'];
       for(const id of ids){ const sel=document.getElementById(id); if(!sel) continue; sel.innerHTML=''; sortTopics(state.topics).forEach(t=>{ const opt=document.createElement('option'); opt.value=t.id; opt.textContent=`${t.title} (▲${t.score})`; sel.appendChild(opt); }); }
-      
-      else {
-      // Completed topics for deleteCompletedSelect
-      sortCompleted(state.completed).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        const d = c.completed_at ? new Date(c.completed_at).toLocaleDateString() : '—';
-        opt.textContent = `${c.title} • completed ${d} (▲${c.score})`;
-        sel.appendChild(opt);
-      });
-      }
     }
 
     function getAdminKey(){ return document.getElementById('adminPass').value || ''; }
@@ -361,13 +339,6 @@
     async function adminDelete(){ const id=document.getElementById('editSelect').value; if(!confirm('Delete this topic?')) return; const r=await adminCall({ action:'delete', id }); showToast(r?.error||'Deleted.'); fetchState(); }
     async function adminIncrementVote(){ const id=document.getElementById('incSelect').value; const r=await adminCall({ action:'incrementVote', topicId:id, amount:1 }); showToast(r?.error||'+1 added'); fetchState(); }
     async function adminMoveToCompleted(){ const id=document.getElementById('completeSelect').value; const completedAt=document.getElementById('completedDate').value; const videoUrl=document.getElementById('videoUrl').value.trim(); const r=await adminCall({ action:'complete', id, completedAt, videoUrl }); showToast(r?.error||'Moved to Completed'); document.getElementById('completedDate').value=''; document.getElementById('videoUrl').value=''; fetchState(); }
-    async function adminDeleteCompleted(){const id = document.getElementById('deleteCompletedSelect').value; if (!id) { showToast('Pick a completed topic first.'); return; } if (!confirm('Delete this completed topic? This cannot be undone.')) return;
-
-  const r = await adminCall({ action:'deleteCompleted', id });
-  if (!r || r.error) { showToast(r?.error || 'Error'); return; }
-  showToast('Completed topic deleted.');
-  fetchState(); // refresh lists
-}
 
     function adminTogglePanel(){ const panel=document.getElementById('adminPanel'); const btn=document.getElementById('toggleAdminBtn'); const open=panel.classList.toggle('hidden'); btn.setAttribute('aria-expanded', (!open).toString()); }
     function adminUnlock(){ const key=getAdminKey(); if(!key){ showToast('Enter passphrase'); return; } document.getElementById('adminControls').classList.remove('hidden'); showToast('Admin unlocked (client)'); }
@@ -389,7 +360,6 @@
     document.getElementById('deleteBtn').addEventListener('click', adminDelete);
     document.getElementById('incVoteBtn').addEventListener('click', adminIncrementVote);
     document.getElementById('moveToCompletedBtn').addEventListener('click', adminMoveToCompleted);
-    document.getElementById('deleteCompletedBtn').addEventListener('click', adminDeleteCompleted);
 
     // initial
     fetchState();
